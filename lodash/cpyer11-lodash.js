@@ -1,4 +1,4 @@
-var cryper11 = function () {
+var cpyer11 = function () {
   function join(array, separator = ",") {
     var result = ""
     for (var i = 0; i < array.length - 1; i++) {
