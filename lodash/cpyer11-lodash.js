@@ -11,4 +11,4 @@ var cpyer11 = function () {
   return {
     join: join,
   }
-} 
+}()
