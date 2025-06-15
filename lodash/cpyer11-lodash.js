@@ -325,6 +325,57 @@ var cpyer11 = function () {
     return result;
   }
 
+  function fromPairs(pairs) {
+    let obj = {};
+    for (var i = 0; i < pairs.length; i++) {
+      obj[pairs[i][0]] = pairs[i][1];
+    }
+    return obj;
+  }
+
+  function toPairs(object) {
+    let result = [];
+
+    if (object instanceof Map) {
+      for (var [key, value] of object) {
+        result.push([key, value]);
+      };
+    } else {
+      for (var [key, value] in object) {
+        result.push([key, value]);
+      };
+    }
+    return result;
+  }
+
+  function get(object, path, defaultValue) {
+    if (!object) return defaultValue;
+    var result = object;
+    if (Array.isArray(path)) {
+      if (path.length === 0) return defaultValue;
+      for (var i = 0; i < path.length; i++) {
+        if (!result[path[i]]) return defaultValue;
+        result = result[path[i]];
+      }
+    } else if (typeof path === 'string') {
+      //String analyse
+      let key = '';
+      for (var i = 0; i < path.length; i++) {
+        if (path[i] === '.' || path[i] === ']' || path[i] === '[') {
+          if (key === '') continue;
+          if (!result[key]) return defaultValue;
+          result = result[key];
+          key = '';
+          continue;
+        }
+        key += path[i]
+      }
+      result = result[key] ? result[key] : defaultValue;
+
+    }
+    return result;
+  }
+
   return {
     join: join,
     parseJSON: parseJSON,
@@ -333,7 +384,10 @@ var cpyer11 = function () {
     chunk: chunk,
     drop: drop,
     flatten: flatten,
-    flattenDeep: flattenDeep;
-    flattenDepth: flattenDepth;
+    flattenDeep: flattenDeep,
+    flattenDepth: flattenDepth,
+    get: get,
+    fromPairs: fromPairs,
+    toPairs: toPairs,
   }
 }()
