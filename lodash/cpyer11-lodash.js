@@ -341,7 +341,7 @@ var cpyer11 = function () {
         result.push([key, value]);
       };
     } else {
-      for (var [key, value] in object) {
+      for (var [key, value] of Object.entries(object)) {
         result.push([key, value]);
       };
     }
@@ -370,9 +370,255 @@ var cpyer11 = function () {
         }
         key += path[i]
       }
-      result = result[key] ? result[key] : defaultValue;
+      result = result[key] ? result[key] : (result[key] === false ? result[key] : defaultValue);
 
     }
+    return result;
+  }
+
+  function head(array) {
+    return array[0];
+  }
+
+  function indexOf(array, value, fromIndex = 0) {
+    if (array.length === 0) return -1;
+    if (fromIndex < 0) fromIndex = Math.max(array.length + fromIndex, 0);
+    for (var i = fromIndex; i < array.length; i++) {
+      if (array[i] === value) return i;
+    }
+    return -1;
+  }
+
+  function lastIndexOf(array, value, fromIndex = array.length - 1) {
+    if (array.length === 0) return -1;
+    if (fromIndex > array.length - 1) fromIndex = array.length - 1;
+    for (var i = fromIndex; i >= 0; i--) {
+      if (array[i] === value) return i;
+    }
+    return -1;
+  }
+
+  function initial(array) {
+    let result = [];
+    for (var i = 0; i < array.length - 1; i++) {
+      result[i] = array[i];
+    }
+    return result;
+  }
+
+  function last(array) {
+    return array[array.length - 1];
+  }
+
+  function swap(arr, i, j) {
+    let temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+
+  }
+
+  function pull(array, ...args) {
+    let writeIdx = 0;
+    for (var i = 0; i < array.length; i++) {
+      if (!args.includes(array[i])) {
+        array[writeIdx] = array[i];
+        writeIdx++;
+      }
+    };
+    array.length = writeIdx;
+    return array;
+  }
+
+  function reverse(array) {
+    let i = 0, j = array.length - 1;
+    while (i < j) {
+      swap(array, i++, j--);
+    }
+    return array;
+  }
+
+  function forEach(collection, iterator = identity) {
+
+    if (Object.prototype.toString.call(collection) == '[object Object]') {
+      for (var key in collection) {
+        if (iterator(collection[key], key) === false) {
+          return collection;
+        }
+      }
+    } else {
+      for (var index = 0; index < collection.length; index++) {
+        if (iterator(collection[index], index) === false) {
+          return collection;// stop iterating return collection
+        }
+      }
+    }
+    return collection;
+  }
+
+
+  function patternIdentification(predicate = identity) {
+    if (typeof predicate === 'function') {
+      return function (item) {
+        return predicate(item);
+      }
+    } else if (typeof predicate === 'string' || typeof predicate === 'number') {
+      return function (object) {
+        return get(object, predicate.toString());
+      }
+    } else if (Object.prototype.toString.call(predicate) === '[object Array]') {
+      const [key, value] = predicate;
+      return function (arr1) {
+        return deepEqual(arr1[key], value);
+      }
+    } else if (Object.prototype.toString.call(predicate) === '[object Object]') {
+      return function (obj1) {
+        return deepEqual(obj1, predicate);
+      };
+    } else {
+      return function (val) {
+        return val;
+      };
+    }
+  }
+
+
+
+  function some(collection, predicate = identity) {
+    let func = patternIdentification(predicate);
+    let allFlase = false;//suppose all is false 
+    forEach(collection, item => {
+      if (func(item) === true) {
+        allFlase = true;
+        return false;
+      }
+    });
+    return allFlase;
+  }
+
+  function every(collection, predicate = identity) {
+    let allTrue = true;//默认全为true
+    let func = patternIdentification(predicate);
+    if (typeof predicate === 'function') {
+      forEach(collection, item => {
+        if (predicate(item) === false) {
+          allTrue = false;
+          return false;
+        }
+      });
+    } else if (Object.prototype.toString.call(predicate) === '[object Object]') {
+      forEach(collection, item => {
+        if (deepEqual(item, predicate) === false) {
+          allTrue = false;
+          return false;
+        }
+      });
+    } else if (Object.prototype.toString.call(predicate) === '[object Array]') {
+      const [key, value] = predicate;
+      forEach(collection, item => {
+        if (deepEqual(item[key], value) === false) {
+          allTrue = false;
+          return false;
+        }
+      });
+    } else if (typeof predicate === 'string') {
+      forEach(collection, item => {
+        if (func(item) === false) {
+          allTrue = false;
+          return false;
+        }
+      });
+    }
+
+
+    return allTrue
+  }
+
+  function analysePath(path) {
+    let keyArrary = [];
+    if (typeof path === 'string') {
+      let key = '';
+      for (var i = 0; i < path.length; i++) {
+        if (path[i] === '.' || path[i] === ']' || path[i] === '[') {
+          if (key === '') continue;
+          keyArrary.push(key);
+          key = '';
+          continue;
+        }
+        key += path[i];
+      }
+      if (key !== '') keyArrary.push(key);
+      return keyArrary;
+    } else if (Object.prototype.toString.call(path) === '[object Array]') {
+      return [...path];
+    }
+
+    throw new TypeError('input must be a string or Array');
+  }
+
+
+  function has(object, path) {
+    let keyArrary = analysePath(path);
+    for (var key in object) {
+      if (key === keyArrary[0]) {
+        if (typeof object[key] === 'function') return false;
+        if (Object.prototype.toString.call(object[key]) !== null && keyArrary.length > 1) {
+          if (has(object[key], keyArrary.slice(1)) === false) return false;// return to last level
+          else return true;
+        } else {
+          return true
+        }
+
+      }
+    }
+    return false;
+  }
+
+  function countBy(collection, iteratee = identity) {
+
+    let func = patternIdentification(iteratee);
+    let obj = {};
+    forEach(collection, item => {
+      let key = func(item);
+      obj[key] = (obj[key] || 0) + 1;
+    });
+    return obj;
+  }
+
+  function groupBy(collection, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let obj = {};
+    forEach(collection, item => {
+      let key = func(item);
+      key = typeof key === 'number' ? key.toString() : key;
+      if (!has(obj, key)) {
+        obj[key] = [];
+      }
+      obj[key].push(item);
+
+    });
+    return obj;
+  }
+
+  function keyBy(collection, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let obj = {};
+    forEach(collection, item => {
+      let key = func(item);
+      if (!has(obj, key)) {
+        obj[key] = item;
+      } else {
+        obj[key] = item;
+      }
+    });
+    return obj;
+  }
+
+  function map(collection, iteratee = identity) {
+    let result = [];
+    let func = patternIdentification(iteratee);
+    forEach(collection, item => {
+      result.push(func(item));
+    });
     return result;
   }
 
@@ -389,5 +635,20 @@ var cpyer11 = function () {
     get: get,
     fromPairs: fromPairs,
     toPairs: toPairs,
+    indexOf: indexOf,
+    lastIndexOf: lastIndexOf,
+    pull: pull,
+    last: last,
+    every: every,
+    some: some,
+    forEach: forEach,
+    has: has,
+    countBy: countBy,
+    groupBy: groupBy,
+    keyBy: keyBy,
+    map: map,
   }
 }()
+
+export { cpyer11 }
+
