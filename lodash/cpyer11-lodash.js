@@ -440,13 +440,14 @@ var cpyer11 = function () {
   function forEach(collection, iterator = identity) {
 
     if (Object.prototype.toString.call(collection) == '[object Object]') {
-      for (var key in collection) {
-        if (iterator(collection[key], key) === false) {
+      let keySet = keys(collection);
+      for (let index = 0; index < keySet.length; index++) {
+        if (iterator(collection[keySet[index]], keySet[index]) === false) {
           return collection;
         }
       }
     } else {
-      for (var index = 0; index < collection.length; index++) {
+      for (let index = 0; index < collection.length; index++) {
         if (iterator(collection[index], index) === false) {
           return collection;// stop iterating return collection
         }
@@ -462,17 +463,18 @@ var cpyer11 = function () {
         return predicate(item);
       }
     } else if (typeof predicate === 'string' || typeof predicate === 'number') {
-      return function (object) {
-        return get(object, predicate.toString());
+      return function (obj) {
+        return get(obj, predicate.toString());
       }
     } else if (Object.prototype.toString.call(predicate) === '[object Array]') {
       const [key, value] = predicate;
-      return function (arr1) {
-        return deepEqual(arr1[key], value);
+      return function (arr) {
+        return deepEqual(arr[key], value);
       }
     } else if (Object.prototype.toString.call(predicate) === '[object Object]') {
-      return function (obj1) {
-        return deepEqual(obj1, predicate);
+      return function (obj) {
+        return partialMatch(obj, predicate);
+
       };
     } else {
       return function (val) {
@@ -622,6 +624,182 @@ var cpyer11 = function () {
     return result;
   }
 
+
+  function partialMatch(obj, src) {
+    for (var key in src) {
+      if (has(obj, key)) {
+        if (Object.prototype.toString.call(obj[key]) === '[object Object]') {
+          return partialMatch(obj[key], scr[key]);
+        } else {
+          if (obj[key] !== src[key]) return false;
+        }
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function filter(collection, iteratee = identity) {
+    let result = [];
+    let func = patternIdentification(iteratee);
+    forEach(collection, item => {
+      if (func(item))
+        result.push(item);
+    });
+    return result;
+  }
+
+  function getFirstPropertyValue(obj) {
+    if (Object.prototype.toString.call(obj) === '[object Object]') {
+      if (obj == null) return null;
+      const entries = Object.entries(obj);
+      return entries[0][1];
+    }
+    throw new TypeError("Unexpected Type");
+
+  }
+
+  function isObject(collection) {
+    return Object.prototype.toString.call(collection) === '[object Object]';
+  }
+
+  function isSet(collection) {
+    return Object.prototype.toString.call(collection) === '[object Set]';
+  }
+
+  function isMap(collection) {
+    return Object.prototype.toString.call(collection) === '[object Map]';
+  }
+
+  function reduce(collection, func, initialValue) {
+
+    if (initialValue == undefined) {
+      if (isObject(collection)) {
+        initialValue = {};
+      } else {
+        initialValue = [];
+      }
+    }
+    forEach(collection, (item, index) => {
+      initialValue = func(initialValue, item, index);
+    });
+
+    return initialValue;
+  }
+
+  function keys(obj) {
+    let result = [];
+    if (Array.isArray(obj) || typeof obj === 'string') {
+      for (var i = 0; i < obj.length; i++) {
+        result.push(i.toString());
+      }
+    } else {
+      for (var key in obj) {
+        if (has(obj, key))
+          result.push(key);
+      }
+    }
+    return result;
+  }
+
+  function reduceRight(collection, iterator, initialValue) {
+    if (initialValue == undefined) {
+      if (isObject(collection)) {
+        initialValue = {};
+      } else {
+        initialValue = [];
+      }
+    }
+    if (isObject(collection)) {
+      let keySet = keys(collection);
+      for (let index = keySet.length - 1; index >= 0; index--) {
+        let temp = iterator(collection[keySet[index]], keySet[index]);
+        if (!has(collection, keySet[index])) {
+          initialValue[keySet[index]] = temp;
+        }
+        if (temp === false) {
+          break;
+        }
+      }
+    } else {
+      for (let index = collection.length - 1; index >= 0; index--) {
+        let temp = iterator(collection[index], index);
+        initialValue.push(...temp);
+        if (temp === false) {
+          break;
+        }
+
+      }
+    }
+
+    return initialValue;
+  }
+
+  function size(collection) {
+    let size = 0;
+    if (typeof collection == 'string' || Array.isArray(collection)) {
+      size = collection.length;
+    } else if (isObject(collection)) {
+      for (var key in collection) {
+        size++;
+      }
+    } else if (isMap || isSet) {
+      size = collection.size;
+    }
+    return size;
+  }
+
+  function slice(arr, start = 0, end = arr.length) {
+    let result = [];
+    for (var i = start; i < end; i++) {
+      result.push(arr[i]);
+    }
+    return result;
+  }
+
+  function mergeSort(arr, func) {
+    if (arr.length < 2) return arr;
+
+    const mid = arr.length >> 1;
+    let left = slice(arr, 0, mid);
+    let right = slice(arr, mid);
+
+    mergeSort(left, func);
+    mergeSort(right, func);
+
+    var i = 0, j = 0, k = 0;
+    while (i < left.length && j < right.length) {
+      if (func(left[i]) <= func(right[j])) {
+        arr[k++] = left[i++];
+      } else {
+        arr[k++] = right[j++];
+      }
+    }
+
+    while (i < left.length) {
+      arr[k++] = left[i++]
+    }
+    while (j < right.length) {
+      arr[k++] = right[j++]
+    }
+
+    return arr;
+  }
+
+
+  function sortBy(collection, iteratees = identity) {
+    forEach(iteratees, (demand) => {
+      const func = patternIdentification(demand);
+      mergeSort(collection, func);
+    })
+    return collection;
+  }
+
+  function sample() {
+
+  }
+
   return {
     join: join,
     parseJSON: parseJSON,
@@ -647,8 +825,13 @@ var cpyer11 = function () {
     groupBy: groupBy,
     keyBy: keyBy,
     map: map,
+    filter: filter,
+    reduce: reduce,
+    keys: keys,
+    reduceRight: reduceRight,
+    sortBy: sortBy,
   }
 }()
 
-export { cpyer11 }
+//export { cpyer11 }
 
