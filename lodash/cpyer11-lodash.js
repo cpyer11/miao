@@ -537,9 +537,7 @@ var cpyer11 = function () {
 
   function analysePath(path) {
     let keyArrary = [];
-    // if (typeof path === 'number') {
-    //   path = path.toString();
-    // }
+
     if (typeof path === 'string') {
       let key = '';
       for (var i = 0; i < path.length; i++) {
@@ -555,9 +553,11 @@ var cpyer11 = function () {
       return keyArrary;
     } else if (Object.prototype.toString.call(path) === '[object Array]') {
       return [...path];
+    } else if (typeof path === 'number') {
+      return path.toString();
     }
 
-    throw new TypeError('input must be a string or Array');
+    throw new TypeError('input must be a String, Array or Number');
   }
 
 
@@ -577,6 +577,14 @@ var cpyer11 = function () {
       }
     }
     return false;
+  }
+
+  function check(description, actual, expected) {
+    if (actual === expected) {
+      console.log(`PASS: ${description}`);
+    } else {
+      console.error(`FAIL: ${description} - Expected: ${expected}, Actual: ${actual}`);
+    }
   }
 
   function countBy(collection, iteratee = identity) {
@@ -610,7 +618,7 @@ var cpyer11 = function () {
     let obj = {};
     forEach(collection, item => {
       let key = func(item);
-      if (!has(obj, key)) {//防止其去原型链找
+      if (!has(obj, key)) {//prevent from searching in protoType
         obj[key] = item;
       } else {
         obj[key] = item;
@@ -623,7 +631,7 @@ var cpyer11 = function () {
     let result = [];
 
     let func = patternIdentification(iteratee);
-    forEach(collection, (item, i) => {
+    forEach(collection, (item, i, collection) => {
       result.push(func(item, i, collection));
     });
     return result;
@@ -816,6 +824,9 @@ var cpyer11 = function () {
     return exp === undefined;
   }
 
+  function isNull(exp) {
+    return exp === null;
+  }
 
   return {
     join: join,
@@ -849,8 +860,10 @@ var cpyer11 = function () {
     sortBy: sortBy,
     sample: sample,
     isUndefined: isUndefined,
+    slice: slice,
+    isNull: isNull,
   }
 }()
 
-export { cpyer11 }
+
 
