@@ -442,13 +442,13 @@ var cpyer11 = function () {
     if (Object.prototype.toString.call(collection) == '[object Object]') {
       let keySet = keys(collection);
       for (let index = 0; index < keySet.length; index++) {
-        if (iterator(collection[keySet[index]], keySet[index]) === false) {
+        if (iterator(collection[keySet[index]], keySet[index], collection) === false) {
           return collection;
         }
       }
     } else {
       for (let index = 0; index < collection.length; index++) {
-        if (iterator(collection[index], index) === false) {
+        if (iterator(collection[index], index, collection) === false) {
           return collection;// stop iterating return collection
         }
       }
@@ -459,8 +459,8 @@ var cpyer11 = function () {
 
   function patternIdentification(predicate = identity) {
     if (typeof predicate === 'function') {
-      return function (item) {
-        return predicate(item);
+      return function (...item) {
+        return predicate(...item);
       }
     } else if (typeof predicate === 'string' || typeof predicate === 'number') {
       return function (obj) {
@@ -537,6 +537,9 @@ var cpyer11 = function () {
 
   function analysePath(path) {
     let keyArrary = [];
+    // if (typeof path === 'number') {
+    //   path = path.toString();
+    // }
     if (typeof path === 'string') {
       let key = '';
       for (var i = 0; i < path.length; i++) {
@@ -559,6 +562,7 @@ var cpyer11 = function () {
 
 
   function has(object, path) {
+    if (!object) return false;
     let keyArrary = analysePath(path);
     for (var key in object) {
       if (key === keyArrary[0]) {
@@ -606,7 +610,7 @@ var cpyer11 = function () {
     let obj = {};
     forEach(collection, item => {
       let key = func(item);
-      if (!has(obj, key)) {
+      if (!has(obj, key)) {//防止其去原型链找
         obj[key] = item;
       } else {
         obj[key] = item;
@@ -617,9 +621,10 @@ var cpyer11 = function () {
 
   function map(collection, iteratee = identity) {
     let result = [];
+
     let func = patternIdentification(iteratee);
-    forEach(collection, item => {
-      result.push(func(item));
+    forEach(collection, (item, i) => {
+      result.push(func(item, i, collection));
     });
     return result;
   }
@@ -673,18 +678,25 @@ var cpyer11 = function () {
   }
 
   function reduce(collection, func, initialValue) {
-
+    let start = 0
     if (initialValue == undefined) {
       if (isObject(collection)) {
         initialValue = {};
       } else {
-        initialValue = [];
+        initialValue = collection[0];
+        start = 1;
       }
     }
-    forEach(collection, (item, index) => {
-      initialValue = func(initialValue, item, index);
-    });
 
+    if (isObject(collection)) {
+      for (var key in collection) {
+        initialValue = func(initialValue, collection[key], key);
+      }
+    } else {
+      for (let i = start; i < collection.length; i++) {
+        initialValue = func(initialValue, collection[i]);
+      }
+    }
     return initialValue;
   }
 
@@ -714,23 +726,23 @@ var cpyer11 = function () {
     if (isObject(collection)) {
       let keySet = keys(collection);
       for (let index = keySet.length - 1; index >= 0; index--) {
-        let temp = iterator(collection[keySet[index]], keySet[index]);
+        let initialValue = iterator(initialValue, collection[keySet[index]], keySet[index]);
         if (!has(collection, keySet[index])) {
-          initialValue[keySet[index]] = temp;
+          initialValue[keySet[index]] = initialValue;
         }
-        if (temp === false) {
+        if (initialValue === false) {
           break;
         }
       }
     } else {
+
       for (let index = collection.length - 1; index >= 0; index--) {
-        let temp = iterator(collection[index], index);
-        initialValue.push(...temp);
-        if (temp === false) {
+        initialValue = iterator(initialValue, collection[index], index);
+        if (initialValue === false) {
           break;
         }
-
       }
+
     }
 
     return initialValue;
@@ -796,9 +808,14 @@ var cpyer11 = function () {
     return collection;
   }
 
-  function sample() {
-
+  function sample(array) {
+    return array[Math.random() * (array.length) | 0];
   }
+
+  function isUndefined(exp) {
+    return exp === undefined;
+  }
+
 
   return {
     join: join,
@@ -830,8 +847,10 @@ var cpyer11 = function () {
     keys: keys,
     reduceRight: reduceRight,
     sortBy: sortBy,
+    sample: sample,
+    isUndefined: isUndefined,
   }
 }()
 
-//export { cpyer11 }
+export { cpyer11 }
 
