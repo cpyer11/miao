@@ -121,9 +121,10 @@ var cpyer11 = function () {
   }
 
   function isFalsey(val) {
-    if (isNaN(val) || val === false || val === null || val === undefined || val === 0 || val === "") {
+    if (Number.isNaN(val) || val === false || val === null || val === undefined || val === 0 || val === "") {
       return true;
     }
+    return false;
   }
 
   function compact(array) {
@@ -380,14 +381,32 @@ var cpyer11 = function () {
     return array[0];
   }
 
-  function indexOf(array, value, fromIndex = 0) {
+  function indexOf(array, target, fromIndex = 0) {
     if (array.length === 0) return -1;
     if (fromIndex < 0) fromIndex = Math.max(array.length + fromIndex, 0);
-    for (var i = fromIndex; i < array.length; i++) {
-      if (array[i] === value) return i;
+    if (typeof target === 'string') {
+      let mainLen = array.length;
+      let subLen = target.length;
+      if (subLen > mainLen) return -1
+      for (var i = fromIndex; i <= mainLen - subLen; i++) {
+        let match = true;
+        for (var j = 0; j < subLen; j++) {
+          if (target[j] !== array[i + j]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) return i;
+      }
+    } else {
+      for (var i = fromIndex; i < array.length; i++) {
+        if (array[i] === target) return i;
+      }
     }
     return -1;
   }
+
+
 
   function lastIndexOf(array, value, fromIndex = array.length - 1) {
     if (array.length === 0) return -1;
@@ -770,10 +789,19 @@ var cpyer11 = function () {
     return size;
   }
 
-  function slice(arr, start = 0, end = arr.length) {
-    let result = [];
-    for (var i = start; i < end; i++) {
-      result.push(arr[i]);
+  function splice(arr, start = 0, end = arr.length) {
+    let result;
+    if (typeof arr === 'string') {
+      result = '';
+      for (var i = start; i < end; i++) {
+        result += arr[i];
+      }
+    } else {
+      result = [];
+      for (var i = start; i < end; i++) {
+        result.push(arr[i]);
+      }
+
     }
     return result;
   }
@@ -782,8 +810,8 @@ var cpyer11 = function () {
     if (arr.length < 2) return arr;
 
     const mid = arr.length >> 1;
-    let left = slice(arr, 0, mid);
-    let right = slice(arr, mid);
+    let left = splice(arr, 0, mid);
+    let right = splice(arr, mid);
 
     mergeSort(left, func);
     mergeSort(right, func);
@@ -828,6 +856,123 @@ var cpyer11 = function () {
     return exp === null;
   }
 
+
+  function isNil(exp) {
+    return isNull(exp) || isUndefined(exp);
+  }
+
+  function max(array) {
+    if (array.length === 0 || isFalsey(array)) {
+      return undefined;
+    }
+    return Math.max(...array);
+  }
+
+  function min(array) {
+    if (array.length === 0 || isFalsey(array)) {
+      return undefined;
+    }
+    return Math.min(...array);
+  }
+
+  function maxBy(array, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let result = [];
+    let Max = -Infinity;
+    forEach(array, (item) => {
+      let temp = func(item);
+      if (max([temp, Max]) !== Max) {
+        result = item;
+        Max = temp;
+      }
+    })
+    return result;
+  }
+
+  function minBy(array, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let result = [];
+    let Min = Infinity;
+    forEach(array, (item) => {
+      let temp = func(item);
+      if (min([temp, Min]) !== Min) {
+        result = item;
+        Min = temp;
+      }
+    })
+    return result;
+
+  }
+
+
+  function split(str, separator, limit) {
+    if (separator === undefined || separator === null) {
+      return [str];
+    }
+    if (limit === 0) return [];
+
+    let result = [];
+    let currentIdx = 0, count = 0;
+    let foundIdx;
+
+    if (separator === "") {
+      for (var char of str) {
+        if (count >= limit) break;
+        result.push(char);
+      }
+      return result;
+    }
+    while (currentIdx <= str.length) {
+      if (count == limit) break;
+      foundIdx = indexOf(str, separator, currentIdx);
+      if (foundIdx == -1) break;
+
+      result.push(splice(str, currentIdx, foundIdx))
+
+      currentIdx = foundIdx + separator.length;
+      count++;
+    }
+    result.push(splice(str, currentIdx));
+    return result;
+  }
+
+  function round(number, precision = 0) {
+    let count = precision < 0 ? -precision : precision;
+    let base = 1;
+    while (count > 0) {
+      base *= 10;
+      count--
+    }
+
+    if (precision >= 0) {
+      number *= base;
+      number += 0.5;
+      number = number | 0;
+      number /= base;
+
+    } else {
+      number /= base;
+      number += 0.5;
+      number = number | 0;
+      number *= base;
+    }
+    return number;
+  }
+
+  function sumBy(array, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let arr = map(array, (item) => func(item));
+    return reduce(arr, (a, b) => a + b);
+  }
+
+  function flagMap() {
+
+  }
+
+  function flatMapDepth() {
+
+  }
+
   return {
     join: join,
     parseJSON: parseJSON,
@@ -860,8 +1005,18 @@ var cpyer11 = function () {
     sortBy: sortBy,
     sample: sample,
     isUndefined: isUndefined,
-    slice: slice,
+    splice: splice,
     isNull: isNull,
+    isNil: isNil,
+    max: max,
+    min: min,
+    maxBy: maxBy,
+    minBy: minBy,
+    round: round,
+    sumBy: sumBy,
+    flagMap: flagMap,
+    flatMapDepth: flatMapDepth,
+    split: split,
   }
 }()
 
