@@ -458,7 +458,7 @@ var cpyer11 = function () {
 
   function forEach(collection, iterator = identity) {
 
-    if (Object.prototype.toString.call(collection) == '[object Object]') {
+    if (isObject(collection)) {
       let keySet = keys(collection);
       for (let index = 0; index < keySet.length; index++) {
         if (iterator(collection[keySet[index]], keySet[index], collection) === false) {
@@ -912,27 +912,29 @@ var cpyer11 = function () {
     if (limit === 0) return [];
 
     let result = [];
-    let currentIdx = 0, count = 0;
+    let currentIdx = 0;
     let foundIdx;
 
     if (separator === "") {
       for (var char of str) {
-        if (count >= limit) break;
+        if (result.length >= limit) break;
         result.push(char);
       }
       return result;
     }
     while (currentIdx <= str.length) {
-      if (count == limit) break;
       foundIdx = indexOf(str, separator, currentIdx);
       if (foundIdx == -1) break;
 
       result.push(splice(str, currentIdx, foundIdx))
 
       currentIdx = foundIdx + separator.length;
-      count++;
+      if (result.length >= limit) {
+        break;
+      }
     }
-    result.push(splice(str, currentIdx));
+    if (limit === undefined || (limit !== undefined && result.length < limit))
+      result.push(splice(str, currentIdx));
     return result;
   }
 
@@ -965,12 +967,47 @@ var cpyer11 = function () {
     return reduce(arr, (a, b) => a + b);
   }
 
-  function flagMap() {
-
+  function flagMap(collection, iteratee = identity) {
+    let result = [];
+    forEach(collection, (item) => {
+      let temp = iteratee(item);
+      result.push(temp);
+    })
+    return flatten(result);
   }
 
-  function flatMapDepth() {
+  function flatMapDepth(collection, iteratee = identity, Depth) {
+    let result = [];
+    forEach(collection, (item) => {
+      let temp = iteratee(item);
+      result.push(flattenDepth(temp, Depth));
+    })
+    return result;
+  }
 
+  function mapKeys(object, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let result = {};
+    forEach(object, (item, key) => {
+      let newkey = func(item, key);
+      if (!has(result, newkey)) {
+        result[newkey] = item;
+      }
+    });
+    return result;
+  }
+
+  function mapValues(object, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let result = {};
+    forEach(object, (item, key) => {
+      let newkey = func(item, key);
+
+      if (!has(result, newkey)) {
+        result[key] = item;
+      }
+    });
+    return result;
   }
 
   return {
@@ -1017,8 +1054,10 @@ var cpyer11 = function () {
     flagMap: flagMap,
     flatMapDepth: flatMapDepth,
     split: split,
+    mapKeys: mapKeys,
+    mapValues: mapValues,
   }
 }()
 
-
+export { cpyer11 }
 
