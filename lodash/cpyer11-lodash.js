@@ -208,7 +208,7 @@ var cpyer11 = function () {
 
     if (keys1.length !== keys2.length) return false;
 
-    for (let key in keys1) {
+    for (let key of keys1) {
       if (!keys2.includes(key)) return false;
       if (!deepEqual(keys1[key], keys2[key])) return false;
     }
@@ -1010,6 +1010,92 @@ var cpyer11 = function () {
     return result;
   }
 
+  function abs(x) {
+    return x = x < 0 ? -x : x;
+  }
+
+  function range(start = 0, end, step = 1) {
+    let result = [];
+    if (end === undefined && start === 0) return result;
+    else if (end === undefined && start !== undefined) {
+      end = start;
+      start = 0;
+    }
+    let sum = start;
+    if (end < 0 && step > 0) step = -step;
+    while (abs(sum) < abs(end)) {
+      if (end < 0 && sum !== 0) {
+        result.push(-(abs(sum)));
+      } else {
+        result.push(sum);
+      }
+      sum += step;
+      if (result.length === abs(end) - abs(start)) break;
+    }
+    return result;
+  }
+
+  function stringifyJSON(value) {
+    if (typeof value === 'boolean') {
+      return '' + value;
+    } else if (isFalsey(value)) {
+      return 'null';
+    } else if (Array.isArray(value)) {
+      let result = '[';
+      for (var item of value)
+        result += stringifyJSON(item) + ',';
+      result = splice(result, 0, result.length - 1);
+      result += ']';
+      return result;
+    } else if (isObject(value)) {
+      let result = '{';
+      for (var key in value) {
+        result += '"' + key + '":' + stringifyJSON(value[key]) + ',';
+      }
+      result = splice(result, 0, result.length - 1);
+      result += '}';
+      return result
+    } else if (typeof value === 'number') {
+      return '' + value;
+    } else if (typeof value === 'string') {
+      return value;
+    } else if (typeof value === 'function') {
+      return 'null';
+    }
+
+  }
+
+  function concat(array, ...args) {
+    if (args.length === 0) return array;
+    let result = array;
+    for (var i = 0; i < args.length; i++) {
+      if (Array.isArray(args[i])) {
+        for (var j = 0; j < args[i].length; j++) {
+          result.push(args[i][j]);
+        }
+      } else
+        result.push(args[i]);
+    }
+    return result;
+  }
+
+  function isEqual(value, other) {
+    return deepEqual(value, other);
+  }
+
+
+  function repeat(string = '', n = 1) {
+    if (typeof string !== 'string') {
+      throw new TypeError("expected Type: String");
+    }
+    let result = ''
+    if (n === 0) return result;
+    for (var i = 0; i < n; i++) {
+      result += string;
+    }
+    return result;
+  }
+
   return {
     join: join,
     parseJSON: parseJSON,
@@ -1056,8 +1142,16 @@ var cpyer11 = function () {
     split: split,
     mapKeys: mapKeys,
     mapValues: mapValues,
+    range: range,
+    stringifyJSON: stringifyJSON,
+    concat: concat,
+    isEqual: isEqual,
+    repeat: repeat,
   }
 }()
 
-export { cpyer11 }
+
+
+
+
 
