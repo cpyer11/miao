@@ -580,22 +580,8 @@ var cpyer11 = function () {
   }
 
 
-  function has(object, path) {
-    if (!object) return false;
-    let keyArrary = analysePath(path);
-    for (var key in object) {
-      if (key === keyArrary[0]) {
-        if (typeof object[key] === 'function') return false;
-        if (Object.prototype.toString.call(object[key]) !== null && keyArrary.length > 1) {
-          if (has(object[key], keyArrary.slice(1)) === false) return false;// return to last level
-          else return true;
-        } else {
-          return true
-        }
-
-      }
-    }
-    return false;
+  function has(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key)
   }
 
   function check(description, actual, expected) {
@@ -1001,10 +987,11 @@ var cpyer11 = function () {
     let func = patternIdentification(iteratee);
     let result = {};
     forEach(object, (item, key) => {
-      let newkey = func(item, key);
-
-      if (!has(result, newkey)) {
-        result[key] = item;
+      let value = func(item, key);
+      if (!has(result, key)) {
+        result[key] = value;
+      } else {
+        result[key] = value;
       }
     });
     return result;
@@ -1058,11 +1045,10 @@ var cpyer11 = function () {
     } else if (typeof value === 'number') {
       return '' + value;
     } else if (typeof value === 'string') {
-      return value;
+      return '"' + value + '"';
     } else if (typeof value === 'function') {
       return 'null';
     }
-
   }
 
   function concat(array, ...args) {
@@ -1096,6 +1082,90 @@ var cpyer11 = function () {
     return result;
   }
 
+  function padEnd(string = '', length = 0, chars = ' ') {
+    let stringLen = string.length;
+    let result = string;
+    while (result.length < length) {
+      for (var i = 0; i < chars.length; i++) {
+        result = result + chars[i];
+        if (result.length === length) return result;
+      }
+    }
+    return result;
+  }
+
+  function padStart(string = '', length = 0, chars = ' ') {
+    let stringLen = string.length;
+    let result = string;
+    while (result.length < length) {
+      for (var i = 0; i < chars.length; i++) {
+        result = chars[i] + result;
+        if (result.length === length) return result;
+      }
+    }
+    return result;
+
+  }
+
+  function pad(string = '', length = 0, chars = ' ') {
+    let stringLen = string.length;
+    let rightSide = true;
+    let result = string;
+    while (result.length < length) {
+      if (rightSide) {
+        for (var i = 0; i < chars.length; i++) {
+          result = result + chars[i];
+          if (result.length === length) return result;
+        }
+        rightSide = false;
+      } else {
+        for (var i = 0; i < chars.length; i++) {
+          result = chars[i] + result;
+          if (result.length === length) return result;
+        }
+        rightSide = true;
+      }
+    }
+    return result;
+  }
+
+  function values(collection) {
+    let result = [];
+    if (isObject(collection)) {
+      for (var key in collection) {
+        if (!has(collection, key))
+          result.push(collection[key]);
+      }
+    } else {
+      for (var val of collection) {
+        result.push(val);
+      }
+    }
+    return result;
+  }
+
+  //[0,1]
+  function randomInclusive() {
+    const precision = 1000000000;
+    const random = Math.random() * (precision + 1) | 0;
+    return random / precision;
+  }
+
+  function random(lower = 0, upper = 1, floating) {
+    if (upper === true) {
+      floating = true;
+      upper = 1;
+    } else if (!Number.isInteger(lower) || !Number.isInteger(upper)) {
+      floating = true;
+    }
+    let num = randomInclusive() * (upper - lower) + lower;
+    if (floating) return num;
+    return num | 0;
+  }
+
+  function ceil() {
+
+  }
   return {
     join: join,
     parseJSON: parseJSON,
@@ -1147,11 +1217,18 @@ var cpyer11 = function () {
     concat: concat,
     isEqual: isEqual,
     repeat: repeat,
+    padStart: padStart,
+    padEnd: padEnd,
+    pad: pad,
+    values: values,
+    random: random,
+    ceil: ceil,
+
   }
 }()
 
 
 
 
-
+export { cpyer11 }
 
