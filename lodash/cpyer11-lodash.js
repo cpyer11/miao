@@ -580,8 +580,12 @@ var cpyer11 = function () {
   }
 
 
-  function has(object, key) {
-    return Object.prototype.hasOwnProperty.call(object, key)
+  function has(object, path) {
+    let keys = analysePath(path);
+    for (var i = 0; i < keys.length - 1; i++) {
+      object = object[keys[i]];
+    }
+    return Object.prototype.hasOwnProperty.call(object, keys[i])
   }
 
   function check(description, actual, expected) {
@@ -1119,7 +1123,7 @@ var cpyer11 = function () {
         }
         rightSide = false;
       } else {
-        for (var i = 0; i < chars.length; i++) {
+        for (var i = chars.length - 1; i >= 0; i--) {
           result = chars[i] + result;
           if (result.length === length) return result;
         }
@@ -1133,7 +1137,7 @@ var cpyer11 = function () {
     let result = [];
     if (isObject(collection)) {
       for (var key in collection) {
-        if (!has(collection, key))
+        if (has(collection, key))
           result.push(collection[key]);
       }
     } else {
@@ -1163,9 +1167,161 @@ var cpyer11 = function () {
     return num | 0;
   }
 
-  function ceil() {
+  function ceil(number, precision = 0) {
+    let count = precision > 0 ? precision : -precision;
+    let base = 1;
+    while (count > 0) {
+      base *= 10;
+      count--;
+    }
 
+    if (precision > 0) {
+      number = number * base;
+      number = number + 1;
+      number = number | 0;
+      number /= base;
+
+    } else if (precision < 0) {
+      number /= base;
+      number = number + 1;
+      number = number | 0;
+      number *= base;
+    } else {
+      if (number === (number | 0)) return number + 1;
+      else return number + 1 | 0;
+    }
+    return number;
   }
+
+  function floor(number, precision = 0) {
+    let count = precision > 0 ? precision : -precision;
+    let base = 1;
+    while (count > 0) {
+      base *= 10;
+      count--;
+    }
+
+    if (precision > 0) {
+      number = number * base;
+      number = number | 0;
+      number /= base;
+    } else if (precision < 0) {
+      number /= base;
+      number = number | 0;
+      number *= base;
+    } else {
+      number = number | 0;
+    }
+    return number;
+  }
+
+  function cloneDeep(object) {
+    return parseJSON(stringifyJSON(object));
+  }
+
+  function includes(string, chars) {
+    for (var i = 0; i < string.length; i++) {
+      var match = true;
+      for (var j = 0; j < chars.length; j++) {
+        if (string[i + j] !== chars[j]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return match;
+    }
+    return match;
+  }
+
+  function trim(string = '', chars = ' ') {
+    if (typeof chars !== 'string') chars = ' ';
+    if (string === '') return string;
+    let result = string;
+    let i = 0, j = string.length - 1;
+    while (i < j) {
+      if (includes(chars, string[i])) i++;
+      if (includes(chars, string[j])) j--;
+      if (!includes(chars, string[i]) && !includes(chars, string[j])) break;
+    }
+    result = splice(string, i, j + 1);
+    return result;
+  }
+
+  function trimStart(string = '', chars = ' ') {
+    if (typeof chars !== 'string') chars = ' ';
+    if (string === '') return string;
+    let result = string;
+    let i = 0;
+    while (i < string.length) {
+      if (includes(chars, string[i])) i++;
+      if (!includes(chars, string[i])) break;
+    }
+    result = splice(string, i);
+    return result;
+  }
+
+  function trimEnd(string = '', chars = ' ') {
+    if (typeof chars !== 'string') chars = ' ';
+    if (string === '') return string;
+    let result = string;
+    let i = string.length - 1;
+    while (i < string.length) {
+      if (includes(chars, string[i])) i--;
+      if (!includes(chars, string[i])) break;
+    }
+    result = splice(string, 0, i + 1);
+    return result;
+  }
+
+  function assign(object, ...srcobjs) {
+
+    forEach(srcobjs, srcobj => {
+      let keySet = keys(srcobj);
+      reduce(keySet, (newObj, key) => {
+        if (!has(newObj, key)) newObj[key] = srcobj[key];
+        else newObj[key] = srcobj[key];
+        return newObj;
+      }, object)
+    })
+    return object;
+  }
+
+  function merge(object, ...srcobjs) {
+
+    forEach(srcobjs, srcobj => {
+      if (Array.isArray(srcobj) && Array.isArray(object)) {
+        for (let i = 0; i < srcobj.length; i++) {
+          let exeistVal = srcobj[i];
+          if (exeistVal) {
+            if (isObject(object[i]) && isObject(srcobj[i])
+              || Array.isArray(srcobj[i]) && Array.isArray(object[i]))
+              merge(object[i], srcobj[i]);
+            else if (typeof object[i] !== typeof srcobj[i] && srcobj[i] !== undefined) {
+              object[i] = srcobj[i];
+            }
+          }
+          else if (!exeistVal) newObj[i] = srcobj[i];
+        }
+      } else {
+        let keySet = keys(srcobj);
+        reduce(keySet, (newObj, key) => {
+          let exeist = has(newObj, key);
+          if (exeist) {
+            if (isObject(newObj[key]) && isObject(srcobj[key])
+              || Array.isArray(srcobj[key]) && Array.isArray(newObj[key]))
+              merge(newObj[key], srcobj[key]);
+            else if (typeof newObj[key] !== typeof srcobj[key] && srcobj[key] !== undefined) {
+              newObj[key] = srcobj[key]
+            }
+          }
+          else if (!exeist) newObj[key] = srcobj[key];
+          return newObj;
+        }, object)
+      }
+    })
+    return object;
+  }
+
   return {
     join: join,
     parseJSON: parseJSON,
@@ -1223,12 +1379,18 @@ var cpyer11 = function () {
     values: values,
     random: random,
     ceil: ceil,
-
+    floor: floor,
+    cloneDeep: cloneDeep,
+    trim: trim,
+    trimStart: trimStart,
+    trimEnd: trimEnd,
+    assign: assign,
+    merge: merge,
   }
 }()
 
 
 
 
-export { cpyer11 }
+//export { cpyer11 as _ }
 
