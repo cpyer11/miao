@@ -694,6 +694,10 @@ var cpyer11 = function () {
     return Object.prototype.toString.call(collection) === '[object Map]';
   }
 
+  function isRegExp(collection) {
+    return Object.prototype.toString.call(collection) === '[object RegExp]';
+  }
+
   function reduce(collection, func, initialValue) {
     let start = 0
     if (initialValue == undefined) {
@@ -1026,6 +1030,8 @@ var cpyer11 = function () {
     return result;
   }
 
+
+
   function stringifyJSON(value) {
     if (typeof value === 'boolean') {
       return '' + value;
@@ -1215,7 +1221,29 @@ var cpyer11 = function () {
     return number;
   }
 
+  function stringToRegExp(string) {
+    if (string.length < 2 || string[0] !== '/') {
+      console.error('must be RegExp');
+      return;
+    }
+    let lastIndexOfSlash = lastIndexOf(string, '/');
+    let pattern = splice(string, 1, lastIndexOfSlash);
+    let flags = splice(string, lastIndexOfSlash + 1);
+    return new RegExp(pattern, flags);
+  }
+
+  function regexToStringLiteral(regex) {
+    if (!regex instanceof RegExp) {
+      throw new Error("Input must be a RegExp object.");
+    }
+
+    return regex.toString();
+  }
+
   function cloneDeep(object) {
+    if (object instanceof RegExp) {
+      return stringToRegExp(regexToStringLiteral(object));
+    }
     return parseJSON(stringifyJSON(object));
   }
 
@@ -1322,6 +1350,50 @@ var cpyer11 = function () {
     return object;
   }
 
+  function tail(array) {
+    if (array.length === 0) return undefined;
+    let result = [];
+    if (array instanceof Array) {
+      for (var i = 1; i < array.length; i++) {
+        result.push(array[i]);
+      }
+    }
+    return result;
+  }
+
+  function union(...arrays) {
+    let result = arrays[0];
+    reduce(arrays, (result, array) => {
+      for (let val of array) {
+        if (indexOf(result, val) === -1) {
+          result.push(val);
+        }
+      }
+      return result;
+    }, result);
+    return result;
+  }
+
+  function uniq(array) {
+    let result = new Set();
+    for (let val of array) {
+      result.add(val);
+    }
+    return Array.from(result);
+  }
+
+  function zip(...arrs) {
+    let result = [], temp = [];
+    for (var i = 0; i < arrs[0].length; i++) {
+      for (var j = 0; j < arrs.length; j++) {
+        temp.push(arrs[j][i]);
+      }
+      result.push(temp);
+      temp = [];
+    }
+    return result;
+  }
+
   return {
     join: join,
     parseJSON: parseJSON,
@@ -1380,17 +1452,24 @@ var cpyer11 = function () {
     random: random,
     ceil: ceil,
     floor: floor,
+    regexToStringLiteral: regexToStringLiteral,
+    stringToRegExp: stringToRegExp,
     cloneDeep: cloneDeep,
     trim: trim,
     trimStart: trimStart,
     trimEnd: trimEnd,
     assign: assign,
+    tail: tail,
+    uniq: uniq,
     merge: merge,
+    union: union,
+    initial: initial,
+    zip: zip,
   }
 }()
 
 
 
 
-//export { cpyer11 as _ }
+// export { cpyer11 as _ }
 
