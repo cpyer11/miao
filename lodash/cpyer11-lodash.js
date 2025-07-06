@@ -556,7 +556,6 @@ var cpyer11 = function () {
 
   function analysePath(path) {
     let keyArrary = [];
-
     if (typeof path === 'string') {
       let key = '';
       for (var i = 0; i < path.length; i++) {
@@ -575,12 +574,12 @@ var cpyer11 = function () {
     } else if (typeof path === 'number') {
       return path.toString();
     }
-
     throw new TypeError('input must be a String, Array or Number');
   }
 
 
   function has(object, path) {
+    if (isSet(object)) return object.has(path);
     let keys = analysePath(path);
     for (var i = 0; i < keys.length - 1; i++) {
       object = object[keys[i]];
@@ -730,11 +729,7 @@ var cpyer11 = function () {
         result.push(i.toString());
       }
     } else {
-      let keySet = keys(obj);
-      for (let key of keySet) {
-        if (has(obj, key))
-          result.push(key);
-      }
+      result = Object.keys(obj);
     }
     return result;
   }
@@ -1435,25 +1430,22 @@ var cpyer11 = function () {
     return result;
   }
 
-  function difference(src, other) {
+  function difference(src, ...others) {
     let setA = new Set(src);
-    let setB = new Set(other);
+    let setB = new Set(flatten(others));
     return Array.from(setA.difference(setB));
   }
 
-  function differenceBy(srcs, other, iteratee = identity) {
+  function differenceBy(srcs, ...args) {
+    let iteratee = Array.isArray(args[args.length - 1]) ? null : args.pop();
     let func = patternIdentification(iteratee);
-    let setA = new Set(map(srcs, term => func(term)));
-    let setB = new Set(map(other, term => func(term)));
-    let diffSet = setA.difference(setB);
-    let mapA = new Map(reduce(srcs, (acc, obj) => { //map as [ => val] for each one
-      acc = [...acc, [func(obj), obj]] || [];
-      return acc;
-    }, []));
-    console.log(mapA);
+    let setB = new Set(map(flatten(args), item => func(item)));
     let result = [];
-    for (let key of diffSet) {
-      result.push(mapA.get(key));
+    for (const element of srcs) {
+      let transformElement = func(element);
+      if (!has(setB, transformElement)) {
+        result.push(element)
+      }
     }
     return result;
   }
@@ -1558,5 +1550,5 @@ var cpyer11 = function () {
 
 
 
-//export { cpyer11 as _ }
+export { cpyer11 as _ }
 
