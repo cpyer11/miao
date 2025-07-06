@@ -203,8 +203,8 @@ var cpyer11 = function () {
     // 一个是数组一个不是
     if (Array.isArray(obj1) || Array.isArray(obj2)) return false;
 
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
+    const keys1 = keys(obj1);
+    const keys2 = keys(obj2);
 
     if (keys1.length !== keys2.length) return false;
 
@@ -648,9 +648,10 @@ var cpyer11 = function () {
 
 
   function partialMatch(obj, src) {
-    for (var key in src) {
+    let keySet = keys(src);
+    for (let key of keySet) {
       if (has(obj, key)) {
-        if (Object.prototype.toString.call(obj[key]) === '[object Object]') {
+        if (isObject(obj[key])) {
           return partialMatch(obj[key], scr[key]);
         } else {
           if (obj[key] !== src[key]) return false;
@@ -710,7 +711,8 @@ var cpyer11 = function () {
     }
 
     if (isObject(collection)) {
-      for (var key in collection) {
+      let keySet = keys(collection);
+      for (let key of keySet) {
         initialValue = func(initialValue, collection[key], key);
       }
     } else {
@@ -728,7 +730,8 @@ var cpyer11 = function () {
         result.push(i.toString());
       }
     } else {
-      for (var key in obj) {
+      let keySet = keys(obj);
+      for (let key of keySet) {
         if (has(obj, key))
           result.push(key);
       }
@@ -774,7 +777,8 @@ var cpyer11 = function () {
     if (typeof collection == 'string' || Array.isArray(collection)) {
       size = collection.length;
     } else if (isObject(collection)) {
-      for (var key in collection) {
+      let keySet = keys(collection);
+      for (let key of keySet) {
         size++;
       }
     } else if (isMap || isSet) {
@@ -1046,7 +1050,8 @@ var cpyer11 = function () {
       return result;
     } else if (isObject(value)) {
       let result = '{';
-      for (var key in value) {
+      let keySet = keys(value);
+      for (let key of keySet) {
         result += '"' + key + '":' + stringifyJSON(value[key]) + ',';
       }
       result = splice(result, 0, result.length - 1);
@@ -1142,7 +1147,8 @@ var cpyer11 = function () {
   function values(collection) {
     let result = [];
     if (isObject(collection)) {
-      for (var key in collection) {
+      let keySet = keys(collection);
+      for (let key of keySet) {
         if (has(collection, key))
           result.push(collection[key]);
       }
@@ -1247,18 +1253,41 @@ var cpyer11 = function () {
     return parseJSON(stringifyJSON(object));
   }
 
-  function includes(string, chars) {
-    for (var i = 0; i < string.length; i++) {
-      var match = true;
-      for (var j = 0; j < chars.length; j++) {
-        if (string[i + j] !== chars[j]) {
-          match = false;
-          break;
+  function isSameValue(element, val) {
+    return element === val || (Number.isNaN(element) && Number.isNaN(val));
+  }
+
+  function includes(collection, value, fromIndex = 0) {
+    if (typeof collection === 'string') {
+      for (let i = 0; i < collection.length; i++) {
+        var match = true;
+        for (let j = 0; j < value.length; j++) {
+          if (collection[i + j] !== value[j]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) return match;
+      }
+      return match;
+    } else if (collection instanceof Array) {
+      let startIndex = fromIndex < 0 ? Math.max(fromIndex + collection.length, 0) : Math.floor(Number(fromIndex)) || 0;
+      for (let i = startIndex; i < collection.length; i++) {
+        if (collection[i] === value) {
+          return true;
         }
       }
-      if (match) return match;
+      return false;
+    } else if (isObject(collection)) {
+      let valueSet = values(collection);
+      for (let element of valueSet) {
+        if (isSameValue(element, value)) {
+          return true
+        }
+      }
+      return false;
     }
-    return match;
+
   }
 
   function trim(string = '', chars = ' ') {
@@ -1394,6 +1423,59 @@ var cpyer11 = function () {
     return result;
   }
 
+  function unzip(arrs) {
+    let result = [], temp = [];
+    for (var i = 0; i < arrs[0].length; i++) {
+      for (var j = 0; j < arrs.length; j++) {
+        temp.push(arrs[j][i]);
+      }
+      result.push(temp);
+      temp = [];
+    }
+    return result;
+  }
+
+  function difference(src, other) {
+    let setA = new Set(src);
+    let setB = new Set(other);
+    return Array.from(setA.difference(setB));
+  }
+
+  function differenceBy(srcs, other, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let setA = new Set(map(srcs, term => func(term)));
+    let setB = new Set(map(other, term => func(term)));
+    let diffSet = setA.difference(setB);
+    let mapA = new Map(reduce(srcs, (acc, obj) => { //map as [ => val] for each one
+      acc = [...acc, [func(obj), obj]] || [];
+      return acc;
+    }, []));
+    console.log(mapA);
+    let result = [];
+    for (let key of diffSet) {
+      result.push(mapA.get(key));
+    }
+    return result;
+  }
+
+  function differenceWith(srcs, other, iteratee = identity) {
+    let func = patternIdentification(iteratee);
+    let result = [];
+    forEach(srcs, (term) => {
+      let matchOne = false;
+      forEach(other, (item) => {
+        if (func(term, item)) {
+          matchOne = true;
+          return false;
+        }
+      })
+      if (!matchOne) result.push(term);
+    })
+    return result;
+  }
+
+
+
   return {
     join: join,
     parseJSON: parseJSON,
@@ -1465,11 +1547,16 @@ var cpyer11 = function () {
     union: union,
     initial: initial,
     zip: zip,
+    unzip: unzip,
+    includes: includes,
+    difference: difference,
+    differenceBy: differenceBy,
+    differenceWith: differenceWith,
   }
 }()
 
 
 
 
-// export { cpyer11 as _ }
+//export { cpyer11 as _ }
 
