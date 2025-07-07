@@ -182,6 +182,33 @@ var cpyer11 = function () {
     return result;
   }
 
+  function dropRight(array, n = 1) {
+    let result = [];
+    if (n > array.length) {
+      return result;
+    } else {
+      var length = array.length - n;
+    }
+    for (let i = 0; i < length; i++) {
+      result.push(array[i]);
+    }
+    return result;
+  }
+
+  function dropWhile(array, predicate = identity) {
+    let func = patternIdentification(predicate);
+    let result = [];
+    let start = 0;
+    forEach(array, (val) => {
+      if (!func(val)) {
+        result.push(val);
+        return false;
+      }
+      start++;
+    })
+    return slice(array, start);
+  }
+
   function deepEqual(obj1, obj2) {
     if (obj1 === obj2) return true;
 
@@ -210,7 +237,7 @@ var cpyer11 = function () {
 
     for (let key of keys1) {
       if (!keys2.includes(key)) return false;
-      if (!deepEqual(keys1[key], keys2[key])) return false;
+      if (!deepEqual(obj1[key], obj2[key])) return false;
     }
 
     return true;
@@ -572,19 +599,20 @@ var cpyer11 = function () {
     } else if (Object.prototype.toString.call(path) === '[object Array]') {
       return [...path];
     } else if (typeof path === 'number') {
-      return path.toString();
+      return [path.toString()];
     }
     throw new TypeError('input must be a String, Array or Number');
   }
 
 
   function has(object, path) {
+    if (keys(object).length === 0) return false;
     if (isSet(object)) return object.has(path);
-    let keys = analysePath(path);
-    for (var i = 0; i < keys.length - 1; i++) {
-      object = object[keys[i]];
+    let Keys = analysePath(path);
+    for (var i = 0; i < Keys.length - 1; i++) {
+      object = object[Keys[i]];
     }
-    return Object.prototype.hasOwnProperty.call(object, keys[i])
+    return Object.prototype.hasOwnProperty.call(object, Keys[i])
   }
 
   function check(description, actual, expected) {
@@ -782,7 +810,7 @@ var cpyer11 = function () {
     return size;
   }
 
-  function splice(arr, start = 0, end = arr.length) {
+  function slice(arr, start = 0, end = arr.length) {
     let result;
     if (typeof arr === 'string') {
       result = '';
@@ -803,8 +831,8 @@ var cpyer11 = function () {
     if (arr.length < 2) return arr;
 
     const mid = arr.length >> 1;
-    let left = splice(arr, 0, mid);
-    let right = splice(arr, mid);
+    let left = slice(arr, 0, mid);
+    let right = slice(arr, mid);
 
     mergeSort(left, func);
     mergeSort(right, func);
@@ -919,7 +947,7 @@ var cpyer11 = function () {
       foundIdx = indexOf(str, separator, currentIdx);
       if (foundIdx == -1) break;
 
-      result.push(splice(str, currentIdx, foundIdx))
+      result.push(slice(str, currentIdx, foundIdx))
 
       currentIdx = foundIdx + separator.length;
       if (result.length >= limit) {
@@ -927,7 +955,7 @@ var cpyer11 = function () {
       }
     }
     if (limit === undefined || (limit !== undefined && result.length < limit))
-      result.push(splice(str, currentIdx));
+      result.push(slice(str, currentIdx));
     return result;
   }
 
@@ -1040,7 +1068,7 @@ var cpyer11 = function () {
       let result = '[';
       for (var item of value)
         result += stringifyJSON(item) + ',';
-      result = splice(result, 0, result.length - 1);
+      result = slice(result, 0, result.length - 1);
       result += ']';
       return result;
     } else if (isObject(value)) {
@@ -1049,7 +1077,7 @@ var cpyer11 = function () {
       for (let key of keySet) {
         result += '"' + key + '":' + stringifyJSON(value[key]) + ',';
       }
-      result = splice(result, 0, result.length - 1);
+      result = slice(result, 0, result.length - 1);
       result += '}';
       return result
     } else if (typeof value === 'number') {
@@ -1228,8 +1256,8 @@ var cpyer11 = function () {
       return;
     }
     let lastIndexOfSlash = lastIndexOf(string, '/');
-    let pattern = splice(string, 1, lastIndexOfSlash);
-    let flags = splice(string, lastIndexOfSlash + 1);
+    let pattern = slice(string, 1, lastIndexOfSlash);
+    let flags = slice(string, lastIndexOfSlash + 1);
     return new RegExp(pattern, flags);
   }
 
@@ -1295,7 +1323,7 @@ var cpyer11 = function () {
       if (includes(chars, string[j])) j--;
       if (!includes(chars, string[i]) && !includes(chars, string[j])) break;
     }
-    result = splice(string, i, j + 1);
+    result = slice(string, i, j + 1);
     return result;
   }
 
@@ -1308,7 +1336,7 @@ var cpyer11 = function () {
       if (includes(chars, string[i])) i++;
       if (!includes(chars, string[i])) break;
     }
-    result = splice(string, i);
+    result = slice(string, i);
     return result;
   }
 
@@ -1321,7 +1349,7 @@ var cpyer11 = function () {
       if (includes(chars, string[i])) i--;
       if (!includes(chars, string[i])) break;
     }
-    result = splice(string, 0, i + 1);
+    result = slice(string, 0, i + 1);
     return result;
   }
 
@@ -1398,6 +1426,40 @@ var cpyer11 = function () {
     return result;
   }
 
+  function unionBy(array, ...args) {
+    let iteratee = Array.isArray(args[args.length - 1]) ? null : args.pop();
+    let func = patternIdentification(iteratee);
+    let TransformSet = map(flatten(array), term => func(term));
+    let result = array;
+    const other = flatten(args);
+    for (let element of other) {
+      const transformVal = func(element);
+      if (indexOf(TransformSet, transformVal) === -1) {
+        result.push(element);
+      }
+    }
+    return result;
+  }
+
+  function unionWith(objects, ...args) {
+    let iteratee = Array.isArray(args[args.length - 1]) ? null : args.pop();
+    let func = patternIdentification(iteratee);
+
+    let result = objects;
+    let others = flatten(args);
+    forEach(others, item => {
+      let match = false;
+      forEach(objects, term => {
+        if (func(term, item)) {
+          match = true;
+          return false;
+        }
+      })
+      if (!match) result.push(item);
+    })
+    return result;
+  }
+
   function uniq(array) {
     let result = new Set();
     for (let val of array) {
@@ -1466,6 +1528,12 @@ var cpyer11 = function () {
     return result;
   }
 
+  function delay(callback, time, ...args) {
+    return setTimeout(() => {
+      callback(...args);
+    }, time);
+  }
+
 
 
   return {
@@ -1475,6 +1543,8 @@ var cpyer11 = function () {
     fill: fill,
     chunk: chunk,
     drop: drop,
+    dropRight: dropRight,
+    dropWhile: dropWhile,
     flatten: flatten,
     flattenDeep: flattenDeep,
     flattenDepth: flattenDepth,
@@ -1500,7 +1570,7 @@ var cpyer11 = function () {
     sortBy: sortBy,
     sample: sample,
     isUndefined: isUndefined,
-    splice: splice,
+    slice: slice,
     isNull: isNull,
     isNil: isNil,
     max: max,
@@ -1517,6 +1587,7 @@ var cpyer11 = function () {
     range: range,
     stringifyJSON: stringifyJSON,
     concat: concat,
+    deepEqual: deepEqual,
     isEqual: isEqual,
     repeat: repeat,
     padStart: padStart,
@@ -1537,6 +1608,8 @@ var cpyer11 = function () {
     uniq: uniq,
     merge: merge,
     union: union,
+    unionBy: unionBy,
+    unionWith: unionWith,
     initial: initial,
     zip: zip,
     unzip: unzip,
@@ -1544,6 +1617,7 @@ var cpyer11 = function () {
     difference: difference,
     differenceBy: differenceBy,
     differenceWith: differenceWith,
+    delay: delay,
   }
 }()
 
